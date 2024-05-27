@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        :root {
+            overflow: hidden;
+            background-color: #f0f2f8;
+        }
+
+        .charDiv {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100dvh;
+        }
+
+        #myChart {
+            max-width: 90%;
+            max-height: 90%;
+
+        }
+    </style>
+    <title>Document</title>
+</head>
+
+<body>
+    <div class="charDiv">
+        <canvas id="myChart"></canvas>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+
+        async function fetchData() {
+            try {
+                const response = await fetch('http://impulse.yadro.msk.ru:8008/data');
+                const data = await response.json();
+                return data
+            } catch (err) {
+                console.error('Error fetching data:', err);
+            }
+        }
+
+        const ctx = document.getElementById('myChart');
+
+        fetchData().then(data => {
+            const chartData = {
+                labels: data.map((el) => {
+                    const date = new Date(el._id)
+                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+                }),
+                datasets: [
+                    {
+                        label: 'События 2',
+                        data: data.map((el) => el.sev.filter(sev => sev === 2).length),
+                        backgroundColor: 'rgba(255, 0, 51, 1)',
+                    },
+                    {
+                        label: 'События 1',
+                        data: data.map((el) => el.sev.filter(sev => sev === 1).length),
+                        backgroundColor: 'rgba(243, 218, 11, 1)',
+                    },
+                    {
+                        label: 'События 0',
+                        data: data.map((el) => el.sev.filter(sev => sev === 0).length),
+                        backgroundColor: 'rgba(167, 252, 0, 1)',
+                    }
+                ]
+            };
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: (context) => {
+                                    const date = new Date(data[context[0].dataIndex]._id);
+                                    return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.${date.getFullYear()}, ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                                },
+                                label: (context) => {
+                                    const label = context.dataset.label;
+                                    const value = context.parsed.y;
+                                    return `${label}: ${value}`;
+                                }
+                            },
+                            titleFont: {
+                                size: 6
+                            },
+                            bodyFont: {
+                                size: 5
+                            }
+                        },
+                        title: {
+                            display: true,
+                            text: 'Распределение значений событий',
+                            font: {
+                                size: 8
+                            }
+                        },
+                        legend: {
+                            labels: {
+                                font: {
+                                    size: 5
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            ticks: {
+                                font: {
+                                    size: 5
+                                }
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                font: {
+                                    size: 5
+                                }
+                            }
+                        },
+                    }
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>
